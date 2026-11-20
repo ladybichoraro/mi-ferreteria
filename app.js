@@ -84,7 +84,6 @@ function mostrarProductos(productos) {
         if (producto.precioAnterior) etiquetasHTML += `<span class="etiqueta tag-oferta">OFERTA</span>`;
         if (producto.masVendido) etiquetasHTML += `<span class="etiqueta tag-vendido">MÁS VENDIDO</span>`;
 
-        // Lógica de moneda para la tarjeta
         let simbolo = producto.moneda === "MN" ? "MN " : "$";
 
         let precioHTML = `<span class="precio">${simbolo}${producto.precio.toFixed(2)}</span>`;
@@ -114,7 +113,6 @@ function abrirDetalles(producto) {
 
     document.getElementById('detalle-nombre').innerText = producto.nombre;
     
-    // Lógica de moneda para los detalles
     let simbolo = producto.moneda === "MN" ? "MN " : "$";
     
     let precioHTML = `${simbolo}${producto.precio.toFixed(2)}`;
@@ -167,7 +165,7 @@ function agregarAlCarrito(id, cantidad) {
 }
 
 function actualizarCarrito() {
-    localStorage.setItem('carritoFerreteria', JSON.stringify(carrito)); // Guardar en memoria
+    localStorage.setItem('carritoFerreteria', JSON.stringify(carrito));
 
     const lista = document.getElementById('lista-carrito');
     const contador = document.getElementById('contador-carrito');
@@ -179,7 +177,6 @@ function actualizarCarrito() {
     let totalItems = 0;
 
     carrito.forEach((item, index) => {
-        // Lógica de moneda para el carrito
         let simbolo = item.moneda === "MN" ? "MN " : "$";
         
         const li = document.createElement('li');
@@ -196,7 +193,6 @@ function actualizarCarrito() {
         `;
         lista.appendChild(li);
         
-        // Sumar a la moneda correspondiente
         if (item.moneda === "MN") {
             totalMN += item.precio * item.cantidad;
         } else {
@@ -207,13 +203,13 @@ function actualizarCarrito() {
 
     contador.innerText = totalItems;
     
-    // Mostrar el total separado si hay de ambas monedas, o solo una si es el caso
+    // Mostrar totales separados en líneas distintas
     let textoTotal = "";
-    if (totalUSD > 0) textoTotal += `$${totalUSD.toFixed(2)} `;
-    if (totalMN > 0) textoTotal += `MN ${totalMN.toFixed(2)}`;
-    if (totalUSD === 0 && totalMN === 0) textoTotal = "0.00";
+    if (totalUSD > 0) textoTotal += `<div>$${totalUSD.toFixed(2)}</div>`;
+    if (totalMN > 0) textoTotal += `<div>MN ${totalMN.toFixed(2)}</div>`;
+    if (totalUSD === 0 && totalMN === 0) textoTotal = "<div>0.00</div>";
 
-    totalPrecio.innerText = textoTotal;
+    totalPrecio.innerHTML = textoTotal;
 }
 
 function cambiarCantidadCarrito(index, cambio) {
@@ -228,7 +224,6 @@ function abrirCarrito() { document.getElementById('modal-carrito').classList.add
 function cerrarCarrito() { document.getElementById('modal-carrito').classList.remove('activo'); }
 function cerrarDetalles() { document.getElementById('modal-producto').classList.remove('activo'); }
 
-// Cerrar modales al hacer clic fuera
 window.onclick = function(event) {
     const modalProd = document.getElementById('modal-producto');
     const modalCart = document.getElementById('modal-carrito');
@@ -267,14 +262,13 @@ function enviarWhatsApp() {
     });
 
     mensaje += `%0A*Total a Pagar:*%0A`;
-    if (totalUSD > 0) mensaje += `- Dólares: $${totalUSD.toFixed(2)}%0A`;
-    if (totalMN > 0) mensaje += `- Moneda Nacional: MN ${totalMN.toFixed(2)}%0A`;
+    if (totalUSD > 0) mensaje += `- $${totalUSD.toFixed(2)} USD%0A`;
+    if (totalMN > 0) mensaje += `- ${totalMN.toFixed(2)} MN%0A`;
     
-    const miNumero = "5351832765"; // Recuerda que debe llevar el código de país (53 para Cuba)
+    const miNumero = "5351832765"; 
     window.open(`https://wa.me/${miNumero}?text=${mensaje}`, '_blank');
 }
 
-// Exponer funciones al HTML (Porque ahora es un módulo)
 window.abrirCarrito = abrirCarrito;
 window.cerrarCarrito = cerrarCarrito;
 window.cerrarDetalles = cerrarDetalles;
@@ -286,8 +280,6 @@ window.cambiarCategoria = cambiarCategoria;
 window.filtrarProductos = filtrarProductos;
 window.enviarWhatsApp = enviarWhatsApp;
 
-// Escuchar el botón de añadir del modal
 document.getElementById('btn-add-detalles').onclick = agregarDesdeDetalles;
 
-// Iniciar la tienda
 cargarProductosDesdeDB();
