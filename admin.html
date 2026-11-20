@@ -39,15 +39,17 @@
         <div class="logo">Panel de Control</div>
         <a href="index.html" style="color: white; text-decoration: none; font-size: 14px;">Volver a la Tienda</a>
     </header>
-
-    <!-- Pantalla de Login -->
-    <div id="login-section" style="display: block;">
-        <div class="login-box">
-            <h2>Acceso Admin</h2>
-            <input type="password" id="admin-pass" placeholder="Contraseña">
-            <button onclick="verificarLogin()">Entrar</button>
-        </div>
+    
+<!-- Pantalla de Login -->
+<div id="login-section" style="display: block;">
+    <div class="login-box">
+        <h2>Acceso Admin</h2>
+        <input type="email" id="admin-email" placeholder="Correo Electrónico" style="margin-bottom: 10px;">
+        <input type="password" id="admin-pass" placeholder="Contraseña" style="margin-bottom: 10px;">
+        <button onclick="verificarLogin()">Entrar</button>
+        <p id="login-error" style="color: red; font-size: 12px; margin-top: 10px; display: none;"></p>
     </div>
+</div>
 
     <!-- Panel de Administración -->
     <div id="admin-panel" class="admin-container">

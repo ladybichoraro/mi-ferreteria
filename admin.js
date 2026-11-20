@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// LA MISMA CONFIGURACIÓN DE TU APP.JS
 const firebaseConfig = {
   apiKey: "AIzaSyAdzgsjcZN9XvT90Sh_cQBrw6LDBgVXYUU",
   authDomain: "mi-fereteria.firebaseapp.com",
@@ -13,45 +13,66 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-const PASSWORD_ADMIN = "admin123"; 
-
+// --- VERIFICAR LOGIN ---
 window.verificarLogin = function() {
+    const email = document.getElementById('admin-email').value;
     const pass = document.getElementById('admin-pass').value;
-    if (pass === PASSWORD_ADMIN) {
+    const errorMsg = document.getElementById('login-error');
+    
+    errorMsg.style.display = 'none';
+
+    signInWithEmailAndPassword(auth, email, pass)
+        .then((userCredential) => {
+            // Login exitoso, el observador onAuthStateChanged se encarga de mostrar el panel
+        })
+        .catch((error) => {
+            console.error(error);
+            errorMsg.innerText = "Correo o contraseña incorrectos.";
+            errorMsg.style.display = 'block';
+        });
+};
+
+// --- OBSERVADOR DE ESTADO (Para mantener la sesión abierta si recarga) ---
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        // Está logueado
         document.getElementById('login-section').style.display = 'none';
         document.getElementById('admin-panel').style.display = 'block';
         cargarProductosAdmin();
     } else {
-        alert("Contraseña incorrecta");
+        // No está logueado
+        document.getElementById('login-section').style.display = 'block';
+        document.getElementById('admin-panel').style.display = 'none';
     }
-};
+});
 
-// CREAR O ACTUALIZAR PRODUCTO
+// --- GUARDAR / EDITAR PRODUCTO ---
 document.getElementById('form-producto').addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const id = document.getElementById('prod-id').value; // Si tiene ID, estamos editando
+    const id = document.getElementById('prod-id').value;
     const nombre = document.getElementById('prod-nombre').value;
     const categoria = document.getElementById('prod-categoria').value;
     const precio = parseFloat(document.getElementById('prod-precio').value);
     const precioAnteriorVal = document.getElementById('prod-precio-anterior').value;
     const descripcion = document.getElementById('prod-descripcion').value;
     const masVendido = document.getElementById('prod-mas-vendido').checked;
+    const moneda = document.getElementById('prod-moneda').value;
     
     const imagenesTexto = document.getElementById('prod-imagenes').value;
     const imagenes = imagenesTexto.split('\n').map(url => url.trim()).filter(url => url !== '');
 
-    // Objeto base
     const datosProducto = {
-    nombre,
-    categoria,
-    precio,
-    descripcion,
-    imagenes,
-    masVendido,
-    moneda: document.getElementById('prod-moneda').value // <-- AGREGAR ESTA LÍNEA
-};
+        nombre,
+        categoria,
+        precio,
+        descripcion,
+        imagenes,
+        masVendido,
+        moneda
+    };
 
     if (precioAnteriorVal.trim() !== '') {
         datosProducto.precioAnterior = parseFloat(precioAnteriorVal);
@@ -63,28 +84,26 @@ document.getElementById('form-producto').addEventListener('submit', async (e) =>
 
     try {
         if (id) {
-            // SI HAY ID -> ACTUALIZAR (Editar)
             const productoRef = doc(db, "productos", id);
             await updateDoc(productoRef, datosProducto);
             alert("¡Producto actualizado exitosamente!");
         } else {
-            // SI NO HAY ID -> CREAR NUEVO
             await addDoc(collection(db, "productos"), datosProducto);
             alert("¡Producto guardado exitosamente!");
         }
         
-        cancelarEdicion(); // Limpia el formulario
-        cargarProductosAdmin(); // Recarga la lista
+        cancelarEdicion();
+        cargarProductosAdmin();
         
     } catch (error) {
         console.error("Error al guardar:", error);
-        alert("Error al guardar. Revisa la consola.");
+        alert("Error al guardar. Asegúrate de tener permisos.");
     } finally {
         btn.disabled = false;
     }
 });
 
-// MOSTRAR PRODUCTOS EN LA LISTA DEL ADMIN
+// --- CARGAR PRODUCTOS ---
 async function cargarProductosAdmin() {
     const contenedor = document.getElementById('lista-productos-admin');
     contenedor.innerHTML = 'Cargando...';
@@ -98,19 +117,18 @@ async function cargarProductosAdmin() {
             return;
         }
 
-        // Guardamos los productos en memoria para poder editarlos
         window.productosAdminGlobal = [];
 
         querySnapshot.forEach((docSnap) => {
             const prod = docSnap.data();
-            prod.id = docSnap.id; // Guardamos el ID
+            prod.id = docSnap.id;
             window.productosAdminGlobal.push(prod);
 
             const div = document.createElement('div');
             div.className = 'item-admin';
             div.innerHTML = `
                 <div>
-                    <strong>${prod.nombre}</strong> - $${prod.precio.toFixed(2)} <br>
+                    <strong>${prod.nombre}</strong> - ${prod.moneda === 'MN' ? 'MN ' : '$'}${prod.precio.toFixed(2)} <br>
                     <small style="color: #666;">${prod.categoria}</small>
                 </div>
                 <div class="acciones-admin">
@@ -125,13 +143,11 @@ async function cargarProductosAdmin() {
     }
 }
 
-// PREPARAR EL FORMULARIO PARA EDITAR
+// --- PREPARAR EDICIÓN ---
 window.prepararEdicion = function(id) {
-    // Buscamos el producto por su ID en la lista global
     const producto = window.productosAdminGlobal.find(p => p.id === id);
     
     if (producto) {
-        // Llenamos los campos
         document.getElementById('prod-id').value = producto.id;
         document.getElementById('prod-nombre').value = producto.nombre;
         document.getElementById('prod-categoria').value = producto.categoria;
@@ -139,26 +155,23 @@ window.prepararEdicion = function(id) {
         document.getElementById('prod-precio-anterior').value = producto.precioAnterior || "";
         document.getElementById('prod-descripcion').value = producto.descripcion;
         document.getElementById('prod-mas-vendido').checked = producto.masVendido || false;
-        document.getElementById('prod-moneda').value = producto.moneda || "USD"; 
+        document.getElementById('prod-moneda').value = producto.moneda || "USD";
         
-        // Convertimos el array de imágenes a texto separado por saltos de línea
         if (producto.imagenes && Array.isArray(producto.imagenes)) {
             document.getElementById('prod-imagenes').value = producto.imagenes.join('\n');
         } else {
             document.getElementById('prod-imagenes').value = "";
         }
 
-        // Cambiamos los textos de los botones
         document.getElementById('titulo-formulario').innerText = "Editando Producto";
         document.getElementById('btn-guardar').innerText = "Actualizar Producto";
         document.getElementById('btn-cancelar').style.display = 'block';
 
-        // Subimos la pantalla al formulario
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 };
 
-// CANCELAR LA EDICIÓN
+// --- CANCELAR EDICIÓN ---
 window.cancelarEdicion = function() {
     document.getElementById('form-producto').reset();
     document.getElementById('prod-id').value = "";
@@ -167,7 +180,7 @@ window.cancelarEdicion = function() {
     document.getElementById('btn-cancelar').style.display = 'none';
 };
 
-// ELIMINAR PRODUCTO
+// --- ELIMINAR PRODUCTO ---
 window.eliminarProducto = async function(id) {
     if(confirm("¿Estás seguro de que quieres eliminar este producto?")) {
         try {
@@ -179,4 +192,11 @@ window.eliminarProducto = async function(id) {
             alert("No se pudo eliminar el producto.");
         }
     }
-}
+};
+
+// --- CERRAR SESIÓN (Agregaremos un botón luego) ---
+window.cerrarSesionAdmin = function() {
+    signOut(auth).then(() => {
+        alert("Sesión cerrada");
+    });
+};
