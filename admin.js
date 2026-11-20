@@ -44,13 +44,14 @@ document.getElementById('form-producto').addEventListener('submit', async (e) =>
 
     // Objeto base
     const datosProducto = {
-        nombre,
-        categoria,
-        precio,
-        descripcion,
-        imagenes,
-        masVendido
-    };
+    nombre,
+    categoria,
+    precio,
+    descripcion,
+    imagenes,
+    masVendido,
+    moneda: document.getElementById('prod-moneda').value // <-- AGREGAR ESTA LÍNEA
+};
 
     if (precioAnteriorVal.trim() !== '') {
         datosProducto.precioAnterior = parseFloat(precioAnteriorVal);
@@ -138,6 +139,7 @@ window.prepararEdicion = function(id) {
         document.getElementById('prod-precio-anterior').value = producto.precioAnterior || "";
         document.getElementById('prod-descripcion').value = producto.descripcion;
         document.getElementById('prod-mas-vendido').checked = producto.masVendido || false;
+        document.getElementById('prod-moneda').value = producto.moneda || "USD"; 
         
         // Convertimos el array de imágenes a texto separado por saltos de línea
         if (producto.imagenes && Array.isArray(producto.imagenes)) {

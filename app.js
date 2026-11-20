@@ -34,9 +34,9 @@ async function cargarProductosDesdeDB() {
         filtrarProductos(); 
         actualizarCarrito();
     } catch (error) {
-    console.error("Error al cargar: ", error);
-    contenedor.innerHTML = `<p style="text-align:center; color:red; grid-column: span 2;">ERROR: ${error.message}</p>`;
-}
+        console.error("Error al cargar: ", error);
+        contenedor.innerHTML = `<p style="text-align:center; color:red; grid-column: span 2;">ERROR: ${error.message}</p>`;
+    }
 }
 
 function generarCategorias() {
@@ -84,9 +84,12 @@ function mostrarProductos(productos) {
         if (producto.precioAnterior) etiquetasHTML += `<span class="etiqueta tag-oferta">OFERTA</span>`;
         if (producto.masVendido) etiquetasHTML += `<span class="etiqueta tag-vendido">MÁS VENDIDO</span>`;
 
-        let precioHTML = `<span class="precio">$${producto.precio.toFixed(2)}</span>`;
+        // Lógica de moneda para la tarjeta
+        let simbolo = producto.moneda === "MN" ? "MN " : "$";
+
+        let precioHTML = `<span class="precio">${simbolo}${producto.precio.toFixed(2)}</span>`;
         if (producto.precioAnterior) {
-            precioHTML = `<span class="precio" style="color:#d9534f;">$${producto.precio.toFixed(2)} <span style="font-size:12px; text-decoration:line-through; color:#999;">$${producto.precioAnterior.toFixed(2)}</span></span>`;
+            precioHTML = `<span class="precio" style="color:#d9534f;">${simbolo}${producto.precio.toFixed(2)} <span style="font-size:12px; text-decoration:line-through; color:#999;">${simbolo}${producto.precioAnterior.toFixed(2)}</span></span>`;
         }
 
         const fotoPrincipal = producto.imagenes && producto.imagenes.length > 0 ? producto.imagenes[0] : "https://via.placeholder.com/400?text=Sin+Foto";
@@ -111,9 +114,12 @@ function abrirDetalles(producto) {
 
     document.getElementById('detalle-nombre').innerText = producto.nombre;
     
-    let precioHTML = `$${producto.precio.toFixed(2)}`;
+    // Lógica de moneda para los detalles
+    let simbolo = producto.moneda === "MN" ? "MN " : "$";
+    
+    let precioHTML = `${simbolo}${producto.precio.toFixed(2)}`;
     if (producto.precioAnterior) {
-        precioHTML += ` <span style="font-size:16px; text-decoration:line-through; color:#999;">$${producto.precioAnterior.toFixed(2)}</span>`;
+        precioHTML += ` <span style="font-size:16px; text-decoration:line-through; color:#999;">${simbolo}${producto.precioAnterior.toFixed(2)}</span>`;
     }
     document.getElementById('detalle-precio').innerHTML = precioHTML;
     document.getElementById('detalle-descripcion').innerText = producto.descripcion || "Sin descripción.";
@@ -167,14 +173,19 @@ function actualizarCarrito() {
     const contador = document.getElementById('contador-carrito');
     const totalPrecio = document.getElementById('total-precio');
     lista.innerHTML = '';
-    let total = 0;
+    
+    let totalUSD = 0;
+    let totalMN = 0;
     let totalItems = 0;
 
     carrito.forEach((item, index) => {
+        // Lógica de moneda para el carrito
+        let simbolo = item.moneda === "MN" ? "MN " : "$";
+        
         const li = document.createElement('li');
         li.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <div style="flex: 1;"><strong>${item.nombre}</strong><br><span style="font-size: 12px; color: #666;">$${item.precio.toFixed(2)} c/u</span></div>
+                <div style="flex: 1;"><strong>${item.nombre}</strong><br><span style="font-size: 12px; color: #666;">${simbolo}${item.precio.toFixed(2)} c/u</span></div>
                 <div style="display: flex; align-items: center; gap: 5px;">
                     <button onclick="cambiarCantidadCarrito(${index}, -1)">-</button>
                     <span style="font-weight: bold;">${item.cantidad}</span>
@@ -184,12 +195,25 @@ function actualizarCarrito() {
             </div>
         `;
         lista.appendChild(li);
-        total += item.precio * item.cantidad;
+        
+        // Sumar a la moneda correspondiente
+        if (item.moneda === "MN") {
+            totalMN += item.precio * item.cantidad;
+        } else {
+            totalUSD += item.precio * item.cantidad;
+        }
         totalItems += item.cantidad;
     });
 
     contador.innerText = totalItems;
-    totalPrecio.innerText = total.toFixed(2);
+    
+    // Mostrar el total separado si hay de ambas monedas, o solo una si es el caso
+    let textoTotal = "";
+    if (totalUSD > 0) textoTotal += `$${totalUSD.toFixed(2)} `;
+    if (totalMN > 0) textoTotal += `MN ${totalMN.toFixed(2)}`;
+    if (totalUSD === 0 && totalMN === 0) textoTotal = "0.00";
+
+    totalPrecio.innerText = textoTotal;
 }
 
 function cambiarCantidadCarrito(index, cambio) {
@@ -226,15 +250,27 @@ function enviarWhatsApp() {
     if (nombre === "" || direccion === "") { alert("Por favor, ingresa tu nombre y dirección."); return; }
 
     let mensaje = `*NUEVO PEDIDO* %0A%0A*Cliente:* ${nombre}%0A*Dirección:* ${direccion}%0A%0A*Productos:*%0A`;
-    let total = 0;
+    let totalUSD = 0;
+    let totalMN = 0;
+
     carrito.forEach(item => {
         const subtotal = item.precio * item.cantidad;
-        total += subtotal;
-        mensaje += `- ${item.cantidad}x ${item.nombre} = $${subtotal.toFixed(2)}%0A`;
+        const simbolo = item.moneda === "MN" ? "MN " : "$";
+        
+        if (item.moneda === "MN") {
+            totalMN += subtotal;
+        } else {
+            totalUSD += subtotal;
+        }
+
+        mensaje += `- ${item.cantidad}x ${item.nombre} = ${simbolo}${subtotal.toFixed(2)}%0A`;
     });
-    mensaje += `%0A*Total a Pagar: $${total.toFixed(2)}*`;
+
+    mensaje += `%0A*Total a Pagar:*%0A`;
+    if (totalUSD > 0) mensaje += `- Dólares: $${totalUSD.toFixed(2)}%0A`;
+    if (totalMN > 0) mensaje += `- Moneda Nacional: MN ${totalMN.toFixed(2)}%0A`;
     
-    const miNumero = "51832765"; // Asegúrate de que este número tenga el código de país
+    const miNumero = "5351832765"; // Recuerda que debe llevar el código de país (53 para Cuba)
     window.open(`https://wa.me/${miNumero}?text=${mensaje}`, '_blank');
 }
 
