@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Estilos exclusivos para el panel de admin */
+        .admin-container { max-width: 800px; margin: 20px auto; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .admin-container h2 { margin-bottom: 20px; color: #1a1a2e; text-align: center; }
+        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+        .form-group label { font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #555; }
+        .form-group input, .form-group textarea, .form-group select { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; font-family: inherit; }
+        .form-group textarea { resize: vertical; height: 80px; }
+        .btn-guardar { background-color: #1a1a2e; color: white; padding: 15px; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; transition: 0.3s; }
+        .btn-guardar:hover { background-color: #e94560; }
+        .btn-cancelar { background-color: #999; color: white; padding: 10px; border: none; border-radius: 5px; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; display: none; }
+        .check-group { flex-direction: row; align-items: center; gap: 10px; }
+        .check-group input { width: 20px; height: 20px; }
+        
+        /* Ocultar el panel hasta que ponga la contraseña */
+        #login-section, #admin-panel { display: none; }
+        .login-box { max-width: 300px; margin: 50px auto; padding: 20px; background: white; border-radius: 10px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .login-box input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .login-box button { width: 100%; padding: 10px; background: #e94560; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        
+        /* Lista de productos en el admin */
+        .lista-admin { margin-top: 30px; }
+        .item-admin { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .acciones-admin button { border: none; padding: 6px 10px; border-radius: 3px; cursor: pointer; color: white; margin-left: 5px; font-size: 12px;}
+        .btn-editar { background: #f0ad4e; }
+        .btn-eliminar { background: #d9534f; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">Panel de Control</div>
+        <a href="index.html" style="color: white; text-decoration: none; font-size: 14px;">Volver a la Tienda</a>
+    </header>
+
+    <!-- Pantalla de Login -->
+    <div id="login-section" style="display: block;">
+        <div class="login-box">
+            <h2>Acceso Admin</h2>
+            <input type="password" id="admin-pass" placeholder="Contraseña">
+            <button onclick="verificarLogin()">Entrar</button>
+        </div>
+    </div>
+
+    <!-- Panel de Administración -->
+    <div id="admin-panel" class="admin-container">
+        <h2 id="titulo-formulario">Agregar Nuevo Producto</h2>
+        
+        <form id="form-producto">
+            <!-- Campo oculto para saber si estamos editando -->
+            <input type="hidden" id="prod-id" value="">
+
+            <div class="form-group">
+                <label>Nombre del Producto</label>
+                <input type="text" id="prod-nombre" required placeholder="Ej: Cemento Gris 50kg">
+            </div>
+
+            <div class="form-group">
+                <label>Categoría</label>
+                <input type="text" id="prod-categoria" required placeholder="Ej: Cementos, Pinturas, Bloques...">
+            </div>
+
+            <div class="form-group">
+                <label>Precio ($)</label>
+                <input type="number" step="0.01" id="prod-precio" required placeholder="Ej: 12.50">
+            </div>
+
+            <div class="form-group">
+                <label>Precio Anterior ($) - Opcional</label>
+                <input type="number" step="0.01" id="prod-precio-anterior" placeholder="Ej: 15.00">
+            </div>
+
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea id="prod-descripcion" required placeholder="Describe el producto..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Enlaces de Imágenes (Uno por línea)</label>
+                <textarea id="prod-imagenes" required placeholder="https://link-foto1.jpg&#10;https://link-foto2.jpg"></textarea>
+            </div>
+
+            <div class="form-group check-group">
+                <input type="checkbox" id="prod-mas-vendido">
+                <label for="prod-mas-vendido" style="margin-bottom: 0;">¿Es un producto Más Vendido?</label>
+            </div>
+
+            <button type="submit" class="btn-guardar" id="btn-guardar">Guardar Producto en Firebase</button>
+            <button type="button" class="btn-cancelar" id="btn-cancelar" onclick="cancelarEdicion()">Cancelar Edición</button>
+        </form>
+
+        <div class="lista-admin">
+            <h3>Productos Actuales</h3>
+            <div id="lista-productos-admin">Cargando...</div>
+        </div>
+    </div>
+
+    <script type="module" src="admin.js"></script>
+</body>
+</html>

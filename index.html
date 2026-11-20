@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Ferretería - Materiales de Construcción</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <div class="logo">Mi Ferretería</div>
+        <div class="carrito-icono" onclick="abrirCarrito()">
+            🛒 <span id="contador-carrito">0</span>
+        </div>
+    </header>
+
+    <section class="hero">
+        <h1>Materiales de Construcción de Calidad</h1>
+        <p>Todo lo que necesitas para tu obra, directo a tu puerta.</p>
+    </section>
+
+    <div class="barra-controles">
+        <input type="text" id="buscador" placeholder="Buscar producto..." onkeyup="filtrarProductos()">
+        <div class="categorias" id="botones-categorias">
+            <!-- Los botones de categorías se generan con JS -->
+        </div>
+    </div>
+
+    <h2 class="titulo-seccion" id="titulo-seccion">Todos los Productos</h2>
+    
+    <div class="contenedor-productos" id="lista-productos">
+        <!-- Los productos se generan aquí -->
+    </div>
+
+    <!-- Modal de Detalles del Producto -->
+    <div class="modal-producto" id="modal-producto">
+        <div class="contenido-modal-producto">
+            <span class="cerrar" onclick="cerrarDetalles()">&times;</span>
+            <div class="carrusel" id="carrusel-imagenes"></div>
+            <div class="info-detalles">
+                <h2 id="detalle-nombre"></h2>
+                <p class="precio" id="detalle-precio"></p>
+                <p id="detalle-descripcion"></p>
+                
+                <!-- Selector de cantidad en detalles -->
+                <div class="selector-cantidad">
+                    <button onclick="cambiarCantidadDetalle(-1)">-</button>
+                    <span id="cantidad-detalle">1</span>
+                    <button onclick="cambiarCantidadDetalle(1)">+</button>
+                </div>
+
+                <button class="btn-add-detalles" id="btn-add-detalles">Añadir al Carrito</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal del Carrito -->
+    <div class="modal-carrito" id="modal-carrito">
+        <div class="contenido-carrito">
+            <span class="cerrar" onclick="cerrarCarrito()">&times;</span>
+            <h2>Tu Pedido</h2>
+            <ul id="lista-carrito"></ul>
+            <div class="total-carrito">
+                <strong>Total: $<span id="total-precio">0.00</span></strong>
+            </div>
+            <div class="formulario-pedido">
+                <input type="text" id="nombre-cliente" placeholder="Tu Nombre Completo" required>
+                <input type="text" id="direccion-cliente" placeholder="Tu Dirección de Entrega" required>
+                <button class="btn-whatsapp" onclick="enviarWhatsApp()">Finalizar Pedido por WhatsApp</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notificacion" class="notificacion">Producto añadido al carrito</div>
+
+    <!-- IMPORTANTE: type="module" para que funcione Firebase -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
