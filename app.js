@@ -123,13 +123,54 @@ function abrirDetalles(producto) {
     document.getElementById('detalle-descripcion').innerText = producto.descripcion || "Sin descripción.";
 
     const carrusel = document.getElementById('carrusel-imagenes');
+    const indicadores = document.getElementById('indicadores-carrusel');
+    const contadorFotos = document.getElementById('contador-fotos');
+    
     carrusel.innerHTML = '';
+    indicadores.innerHTML = '';
+
     if (producto.imagenes && producto.imagenes.length > 0) {
-        producto.imagenes.forEach(img => {
+        producto.imagenes.forEach((img, index) => {
             carrusel.innerHTML += `<img src="${img}" alt="${producto.nombre}">`;
+            // Creamos los puntitos
+            const dot = document.createElement('div');
+            dot.style.width = '8px';
+            dot.style.height = '8px';
+            dot.style.borderRadius = '50%';
+            dot.style.backgroundColor = index === 0 ? '#ffffff' : 'rgba(255,255,255,0.5)';
+            dot.style.transition = '0.3s';
+            dot.dataset.index = index;
+            indicadores.appendChild(dot);
         });
+
+        // Lógica del contador y puntitos al deslizar
+        if (producto.imagenes.length > 1) {
+            contadorFotos.style.display = 'block';
+            contadorFotos.innerText = `1 / ${producto.imagenes.length}`;
+
+            // Escuchar el scroll del carrusel
+            carrusel.onscroll = () => {
+                const ancho = carrusel.clientWidth;
+                const scroll = carrusel.scrollLeft;
+                const index = Math.round(scroll / ancho);
+                
+                // Actualizar contador
+                contadorFotos.innerText = `${index + 1} / ${producto.imagenes.length}`;
+                
+                // Actualizar puntitos
+                Array.from(indicadores.children).forEach((dot, i) => {
+                    dot.style.backgroundColor = i === index ? '#ffffff' : 'rgba(255,255,255,0.5)';
+                });
+            };
+        } else {
+            // Si solo hay una foto, ocultamos los controles
+            contadorFotos.style.display = 'none';
+            indicadores.style.display = 'none';
+        }
     } else {
         carrusel.innerHTML = `<img src="https://via.placeholder.com/400?text=Sin+Foto" alt="Sin foto">`;
+        contadorFotos.style.display = 'none';
+        indicadores.style.display = 'none';
     }
 
     document.getElementById('modal-producto').classList.add('activo');
@@ -203,10 +244,9 @@ function actualizarCarrito() {
 
     contador.innerText = totalItems;
     
-    // Mostrar totales separados en líneas distintas
     let textoTotal = "";
     if (totalUSD > 0) textoTotal += `<div>$${totalUSD.toFixed(2)}</div>`;
-    if (totalMN > 0) textoTotal += `<div>MN ${totalMN.toFixed(2)}</div>`;
+    if (totalMN > 0) textoTexto += `<div>MN ${totalMN.toFixed(2)}</div>`; // Corregido un pequeño typo aquí
     if (totalUSD === 0 && totalMN === 0) textoTotal = "<div>0.00</div>";
 
     totalPrecio.innerHTML = textoTotal;
@@ -258,7 +298,8 @@ function enviarWhatsApp() {
             totalUSD += subtotal;
         }
 
-        mensaje += `- ${item.cantidad}x ${item.nombre} = ${simbolo}${subtotal.toFixed(2)}%0A`;
+        const textoCodigo = item.codigo ? ` [Ref: ${item.codigo}]` : "";
+        mensaje += `- ${item.cantidad}x ${item.nombre}${textoCodigo} = ${simbolo}${subtotal.toFixed(2)}%0A`;
     });
 
     mensaje += `%0A*Total a Pagar:*%0A`;

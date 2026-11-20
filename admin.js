@@ -54,6 +54,7 @@ document.getElementById('form-producto').addEventListener('submit', async (e) =>
     
     const id = document.getElementById('prod-id').value;
     const nombre = document.getElementById('prod-nombre').value;
+    const codigo = document.getElementById('prod-codigo').value; // NUEVO CAMPO
     const categoria = document.getElementById('prod-categoria').value;
     const precio = parseFloat(document.getElementById('prod-precio').value);
     const precioAnteriorVal = document.getElementById('prod-precio-anterior').value;
@@ -66,6 +67,7 @@ document.getElementById('form-producto').addEventListener('submit', async (e) =>
 
     const datosProducto = {
         nombre,
+        codigo, // GUARDAMOS EL CÓDIGO
         categoria,
         precio,
         descripcion,
@@ -126,9 +128,11 @@ async function cargarProductosAdmin() {
 
             const div = document.createElement('div');
             div.className = 'item-admin';
+            // Mostramos el código en la lista del admin para que sepas cuál es
+            const textCodigo = prod.codigo ? ` [Ref: ${prod.codigo}]` : "";
             div.innerHTML = `
                 <div>
-                    <strong>${prod.nombre}</strong> - ${prod.moneda === 'MN' ? 'MN ' : '$'}${prod.precio.toFixed(2)} <br>
+                    <strong>${prod.nombre}${textCodigo}</strong> - ${prod.moneda === 'MN' ? 'MN ' : '$'}${prod.precio.toFixed(2)} <br>
                     <small style="color: #666;">${prod.categoria}</small>
                 </div>
                 <div class="acciones-admin">
@@ -150,6 +154,7 @@ window.prepararEdicion = function(id) {
     if (producto) {
         document.getElementById('prod-id').value = producto.id;
         document.getElementById('prod-nombre').value = producto.nombre;
+        document.getElementById('prod-codigo').value = producto.codigo || ""; // CARGAMOS EL CÓDIGO
         document.getElementById('prod-categoria').value = producto.categoria;
         document.getElementById('prod-precio').value = producto.precio;
         document.getElementById('prod-precio-anterior').value = producto.precioAnterior || "";
@@ -194,7 +199,7 @@ window.eliminarProducto = async function(id) {
     }
 };
 
-// --- CERRAR SESIÓN (Agregaremos un botón luego) ---
+// --- CERRAR SESIÓN ---
 window.cerrarSesionAdmin = function() {
     signOut(auth).then(() => {
         alert("Sesión cerrada");
