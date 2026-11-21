@@ -97,9 +97,11 @@
                 <textarea id="prod-descripcion" required placeholder="Describe el producto..."></textarea>
             </div>
 
+            <!-- AQUÍ ESTÁ EL CAMBIO: Input para subir fotos -->
             <div class="form-group">
-                <label>Enlaces de Imágenes (Uno por línea)</label>
-                <textarea id="prod-imagenes" required placeholder="https://link-foto1.jpg&#10;https://link-foto2.jpg"></textarea>
+                <label>Fotos del Producto (Subir desde el celular)</label>
+                <input type="file" id="prod-fotos" accept="image/*" multiple style="padding: 10px; border: 1px dashed #ccc; width: 100%;">
+                <small style="color: #666; font-size: 12px; margin-top: 5px;">Puedes seleccionar varias fotos a la vez. Si editas y no seleccionas fotos, se mantendrán las anteriores.</small>
             </div>
 
             <div class="form-group check-group">

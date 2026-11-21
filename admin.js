@@ -15,6 +15,9 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+// --- TU LLAVE DE IMGBB ---
+const IMGBB_API_KEY = "d354041f6e2130734c348eb4f0bc0e48";
+
 // --- VERIFICAR LOGIN ---
 window.verificarLogin = function() {
     const email = document.getElementById('admin-email').value;
@@ -25,7 +28,7 @@ window.verificarLogin = function() {
 
     signInWithEmailAndPassword(auth, email, pass)
         .then((userCredential) => {
-            // Login exitoso, el observador onAuthStateChanged se encarga de mostrar el panel
+            // Login exitoso
         })
         .catch((error) => {
             console.error(error);
@@ -34,27 +37,25 @@ window.verificarLogin = function() {
         });
 };
 
-// --- OBSERVADOR DE ESTADO (Para mantener la sesión abierta si recarga) ---
+// --- OBSERVADOR DE ESTADO ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // Está logueado
         document.getElementById('login-section').style.display = 'none';
         document.getElementById('admin-panel').style.display = 'block';
         cargarProductosAdmin();
     } else {
-        // No está logueado
         document.getElementById('login-section').style.display = 'block';
         document.getElementById('admin-panel').style.display = 'none';
     }
 });
 
-// --- GUARDAR / EDITAR PRODUCTO ---
+// --- GUARDAR / EDITAR PRODUCTO CON SUBIDA DE FOTOS ---
 document.getElementById('form-producto').addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const id = document.getElementById('prod-id').value;
     const nombre = document.getElementById('prod-nombre').value;
-    const codigo = document.getElementById('prod-codigo').value; // NUEVO CAMPO
+    const codigo = document.getElementById('prod-codigo').value;
     const categoria = document.getElementById('prod-categoria').value;
     const precio = parseFloat(document.getElementById('prod-precio').value);
     const precioAnteriorVal = document.getElementById('prod-precio-anterior').value;
@@ -62,29 +63,63 @@ document.getElementById('form-producto').addEventListener('submit', async (e) =>
     const masVendido = document.getElementById('prod-mas-vendido').checked;
     const moneda = document.getElementById('prod-moneda').value;
     
-    const imagenesTexto = document.getElementById('prod-imagenes').value;
-    const imagenes = imagenesTexto.split('\n').map(url => url.trim()).filter(url => url !== '');
-
-    const datosProducto = {
-        nombre,
-        codigo, // GUARDAMOS EL CÓDIGO
-        categoria,
-        precio,
-        descripcion,
-        imagenes,
-        masVendido,
-        moneda
-    };
-
-    if (precioAnteriorVal.trim() !== '') {
-        datosProducto.precioAnterior = parseFloat(precioAnteriorVal);
-    }
+    const inputFotos = document.getElementById('prod-fotos');
+    const archivos = inputFotos.files;
 
     const btn = document.getElementById('btn-guardar');
-    btn.innerText = "Guardando...";
     btn.disabled = true;
 
     try {
+        let urlsImagenes = [];
+
+        // Si seleccionó fotos nuevas, las subimos a ImgBB
+        if (archivos.length > 0) {
+            btn.innerText = "Subiendo fotos (esto puede tardar)...";
+            
+            for (let i = 0; i < archivos.length; i++) {
+                const file = archivos[i];
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                const respuesta = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const datos = await respuesta.json();
+                
+                if (datos.success) {
+                    urlsImagenes.push(datos.data.url); 
+                } else {
+                    console.error("Error subiendo foto:", datos);
+                }
+            }
+        }
+
+        // Si estamos editando y no subió fotos nuevas, conservamos las que ya tenía
+        let imagenesFinales = urlsImagenes;
+        if (id && urlsImagenes.length === 0) {
+            const prodExistente = window.productosAdminGlobal.find(p => p.id === id);
+            imagenesFinales = prodExistente ? prodExistente.imagenes : [];
+        }
+
+        const datosProducto = {
+            nombre,
+            codigo,
+            categoria,
+            precio,
+            descripcion,
+            imagenes: imagenesFinales,
+            masVendido,
+            moneda
+        };
+
+        if (precioAnteriorVal.trim() !== '') {
+            datosProducto.precioAnterior = parseFloat(precioAnteriorVal);
+        }
+
+        btn.innerText = "Guardando en base de datos...";
+
         if (id) {
             const productoRef = doc(db, "productos", id);
             await updateDoc(productoRef, datosProducto);
@@ -99,8 +134,9 @@ document.getElementById('form-producto').addEventListener('submit', async (e) =>
         
     } catch (error) {
         console.error("Error al guardar:", error);
-        alert("Error al guardar. Asegúrate de tener permisos.");
+        alert("Error al guardar. Revisa tu conexión a internet.");
     } finally {
+        btn.innerText = "Guardar Producto en Firebase";
         btn.disabled = false;
     }
 });
@@ -128,7 +164,6 @@ async function cargarProductosAdmin() {
 
             const div = document.createElement('div');
             div.className = 'item-admin';
-            // Mostramos el código en la lista del admin para que sepas cuál es
             const textCodigo = prod.codigo ? ` [Ref: ${prod.codigo}]` : "";
             div.innerHTML = `
                 <div>
@@ -154,7 +189,7 @@ window.prepararEdicion = function(id) {
     if (producto) {
         document.getElementById('prod-id').value = producto.id;
         document.getElementById('prod-nombre').value = producto.nombre;
-        document.getElementById('prod-codigo').value = producto.codigo || ""; // CARGAMOS EL CÓDIGO
+        document.getElementById('prod-codigo').value = producto.codigo || "";
         document.getElementById('prod-categoria').value = producto.categoria;
         document.getElementById('prod-precio').value = producto.precio;
         document.getElementById('prod-precio-anterior').value = producto.precioAnterior || "";
@@ -162,11 +197,8 @@ window.prepararEdicion = function(id) {
         document.getElementById('prod-mas-vendido').checked = producto.masVendido || false;
         document.getElementById('prod-moneda').value = producto.moneda || "USD";
         
-        if (producto.imagenes && Array.isArray(producto.imagenes)) {
-            document.getElementById('prod-imagenes').value = producto.imagenes.join('\n');
-        } else {
-            document.getElementById('prod-imagenes').value = "";
-        }
+        // Limpiamos el input de fotos al editar
+        document.getElementById('prod-fotos').value = "";
 
         document.getElementById('titulo-formulario').innerText = "Editando Producto";
         document.getElementById('btn-guardar').innerText = "Actualizar Producto";

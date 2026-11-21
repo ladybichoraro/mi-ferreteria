@@ -246,7 +246,7 @@ function actualizarCarrito() {
     
     let textoTotal = "";
     if (totalUSD > 0) textoTotal += `<div>$${totalUSD.toFixed(2)}</div>`;
-    if (totalMN > 0) textoTotal += `<div>MN ${totalMN.toFixed(2)}</div>`; // Corregido un pequeño typo aquí
+    if (totalMN > 0) textoTexto += `<div>MN ${totalMN.toFixed(2)}</div>`; // Corregido un pequeño typo aquí
     if (totalUSD === 0 && totalMN === 0) textoTotal = "<div>0.00</div>";
 
     totalPrecio.innerHTML = textoTotal;
