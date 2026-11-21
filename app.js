@@ -19,6 +19,17 @@ let productoSeleccionadoActual = null;
 let cantidadTemporal = 1;
 let categoriaActual = 'Todas';
 
+// FUNCIÓN PARA FORMATEAR PRECIOS (Quita los .00 si es entero)
+function formatearMoneda(valor, moneda) {
+    if (isNaN(valor)) return "";
+    const esEntero = valor % 1 === 0;
+    let numeroFormateado = valor.toLocaleString('en-US', { 
+        minimumFractionDigits: esEntero ? 0 : 2, 
+        maximumFractionDigits: esEntero ? 0 : 2 
+    });
+    return moneda === "MN" ? `MN ${numeroFormateado}` : `$${numeroFormateado}`;
+}
+
 async function cargarProductosDesdeDB() {
     const contenedor = document.getElementById('lista-productos');
     contenedor.innerHTML = '<p style="text-align:center; grid-column: span 2;">Cargando productos...</p>';
@@ -84,11 +95,9 @@ function mostrarProductos(productos) {
         if (producto.precioAnterior) etiquetasHTML += `<span class="etiqueta tag-oferta">OFERTA</span>`;
         if (producto.masVendido) etiquetasHTML += `<span class="etiqueta tag-vendido">MÁS VENDIDO</span>`;
 
-        let simbolo = producto.moneda === "MN" ? "MN " : "$";
-
-        let precioHTML = `<span class="precio">${simbolo}${producto.precio.toFixed(2)}</span>`;
+        let precioHTML = `<span class="precio">${formatearMoneda(producto.precio, producto.moneda)}</span>`;
         if (producto.precioAnterior) {
-            precioHTML = `<span class="precio" style="color:#d9534f;">${simbolo}${producto.precio.toFixed(2)} <span style="font-size:12px; text-decoration:line-through; color:#999;">${simbolo}${producto.precioAnterior.toFixed(2)}</span></span>`;
+            precioHTML = `<span class="precio" style="color:#d9534f;">${formatearMoneda(producto.precio, producto.moneda)} <span style="font-size:12px; text-decoration:line-through; color:#999;">${formatearMoneda(producto.precioAnterior, producto.moneda)}</span></span>`;
         }
 
         const fotoPrincipal = producto.imagenes && producto.imagenes.length > 0 ? producto.imagenes[0] : "https://via.placeholder.com/400?text=Sin+Foto";
@@ -113,11 +122,9 @@ function abrirDetalles(producto) {
 
     document.getElementById('detalle-nombre').innerText = producto.nombre;
     
-    let simbolo = producto.moneda === "MN" ? "MN " : "$";
-    
-    let precioHTML = `${simbolo}${producto.precio.toFixed(2)}`;
+    let precioHTML = formatearMoneda(producto.precio, producto.moneda);
     if (producto.precioAnterior) {
-        precioHTML += ` <span style="font-size:16px; text-decoration:line-through; color:#999;">${simbolo}${producto.precioAnterior.toFixed(2)}</span>`;
+        precioHTML += ` <span style="font-size:16px; text-decoration:line-through; color:#999;">${formatearMoneda(producto.precioAnterior, producto.moneda)}</span>`;
     }
     document.getElementById('detalle-precio').innerHTML = precioHTML;
     document.getElementById('detalle-descripcion').innerText = producto.descripcion || "Sin descripción.";
@@ -132,7 +139,6 @@ function abrirDetalles(producto) {
     if (producto.imagenes && producto.imagenes.length > 0) {
         producto.imagenes.forEach((img, index) => {
             carrusel.innerHTML += `<img src="${img}" alt="${producto.nombre}">`;
-            // Creamos los puntitos
             const dot = document.createElement('div');
             dot.style.width = '8px';
             dot.style.height = '8px';
@@ -143,27 +149,22 @@ function abrirDetalles(producto) {
             indicadores.appendChild(dot);
         });
 
-        // Lógica del contador y puntitos al deslizar
         if (producto.imagenes.length > 1) {
             contadorFotos.style.display = 'block';
             contadorFotos.innerText = `1 / ${producto.imagenes.length}`;
 
-            // Escuchar el scroll del carrusel
             carrusel.onscroll = () => {
                 const ancho = carrusel.clientWidth;
                 const scroll = carrusel.scrollLeft;
                 const index = Math.round(scroll / ancho);
                 
-                // Actualizar contador
                 contadorFotos.innerText = `${index + 1} / ${producto.imagenes.length}`;
                 
-                // Actualizar puntitos
                 Array.from(indicadores.children).forEach((dot, i) => {
                     dot.style.backgroundColor = i === index ? '#ffffff' : 'rgba(255,255,255,0.5)';
                 });
             };
         } else {
-            // Si solo hay una foto, ocultamos los controles
             contadorFotos.style.display = 'none';
             indicadores.style.display = 'none';
         }
@@ -218,12 +219,10 @@ function actualizarCarrito() {
     let totalItems = 0;
 
     carrito.forEach((item, index) => {
-        let simbolo = item.moneda === "MN" ? "MN " : "$";
-        
         const li = document.createElement('li');
         li.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <div style="flex: 1;"><strong>${item.nombre}</strong><br><span style="font-size: 12px; color: #666;">${simbolo}${item.precio.toFixed(2)} c/u</span></div>
+                <div style="flex: 1;"><strong>${item.nombre}</strong><br><span style="font-size: 12px; color: #666;">${formatearMoneda(item.precio, item.moneda)} c/u</span></div>
                 <div style="display: flex; align-items: center; gap: 5px;">
                     <button onclick="cambiarCantidadCarrito(${index}, -1)">-</button>
                     <span style="font-weight: bold;">${item.cantidad}</span>
@@ -245,8 +244,8 @@ function actualizarCarrito() {
     contador.innerText = totalItems;
     
     let textoTotal = "";
-    if (totalUSD > 0) textoTotal += `<div>$${totalUSD.toFixed(2)}</div>`;
-    if (totalMN > 0) textoTexto += `<div>MN ${totalMN.toFixed(2)}</div>`; // Corregido un pequeño typo aquí
+    if (totalUSD > 0) textoTotal += `<div>${formatearMoneda(totalUSD, 'USD')}</div>`;
+    if (totalMN > 0) textoTotal += `<div>${formatearMoneda(totalMN, 'MN')}</div>`;
     if (totalUSD === 0 && totalMN === 0) textoTotal = "<div>0.00</div>";
 
     totalPrecio.innerHTML = textoTotal;
@@ -290,7 +289,6 @@ function enviarWhatsApp() {
 
     carrito.forEach(item => {
         const subtotal = item.precio * item.cantidad;
-        const simbolo = item.moneda === "MN" ? "MN " : "$";
         
         if (item.moneda === "MN") {
             totalMN += subtotal;
@@ -299,12 +297,12 @@ function enviarWhatsApp() {
         }
 
         const textoCodigo = item.codigo ? ` [Ref: ${item.codigo}]` : "";
-        mensaje += `- ${item.cantidad}x ${item.nombre}${textoCodigo} = ${simbolo}${subtotal.toFixed(2)}%0A`;
+        mensaje += `- ${item.cantidad}x ${item.nombre}${textoCodigo} = ${formatearMoneda(subtotal, item.moneda)}%0A`;
     });
 
     mensaje += `%0A*Total a Pagar:*%0A`;
-    if (totalUSD > 0) mensaje += `- $${totalUSD.toFixed(2)} USD%0A`;
-    if (totalMN > 0) mensaje += `- ${totalMN.toFixed(2)} MN%0A`;
+    if (totalUSD > 0) mensaje += `- ${formatearMoneda(totalUSD, 'USD')}%0A`;
+    if (totalMN > 0) mensaje += `- ${formatearMoneda(totalMN, 'MN')}%0A`;
     
     const miNumero = "5351832765"; 
     window.open(`https://wa.me/${miNumero}?text=${mensaje}`, '_blank');
