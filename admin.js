@@ -15,29 +15,24 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// --- TU LLAVE DE IMGBB ---
 const IMGBB_API_KEY = "d354041f6e2130734c348eb4f0bc0e48";
+
+// Variable global para manejar las fotos que se van a guardar
+let fotosActuales = [];
 
 // --- VERIFICAR LOGIN ---
 window.verificarLogin = function() {
     const email = document.getElementById('admin-email').value;
     const pass = document.getElementById('admin-pass').value;
     const errorMsg = document.getElementById('login-error');
-    
     errorMsg.style.display = 'none';
 
-    signInWithEmailAndPassword(auth, email, pass)
-        .then((userCredential) => {
-            // Login exitoso
-        })
-        .catch((error) => {
-            console.error(error);
-            errorMsg.innerText = "Correo o contraseña incorrectos.";
-            errorMsg.style.display = 'block';
-        });
+    signInWithEmailAndPassword(auth, email, pass).catch((error) => {
+        errorMsg.innerText = "Correo o contraseña incorrectos.";
+        errorMsg.style.display = 'block';
+    });
 };
 
-// --- OBSERVADOR DE ESTADO ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
         document.getElementById('login-section').style.display = 'none';
@@ -48,6 +43,29 @@ onAuthStateChanged(auth, (user) => {
         document.getElementById('admin-panel').style.display = 'none';
     }
 });
+
+// --- MOSTRAR FOTOS EN PANTALLA ---
+function actualizarVistaPreviaFotos() {
+    const contenedor = document.getElementById('contenedor-fotos-preview');
+    contenedor.innerHTML = '';
+    
+    fotosActuales.forEach((url, index) => {
+        if (!url) return; // Ignora vacíos
+
+        const div = document.createElement('div');
+        div.style.position = 'relative';
+        div.innerHTML = `
+            <img src="${url}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
+            <button type="button" onclick="eliminarFoto(${index})" style="position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px;">X</button>
+        `;
+        contenedor.appendChild(div);
+    });
+}
+
+window.eliminarFoto = function(index) {
+    fotosActuales.splice(index, 1);
+    actualizarVistaPreviaFotos();
+};
 
 // --- GUARDAR / EDITAR PRODUCTO CON SUBIDA DE FOTOS ---
 document.getElementById('form-producto').addEventListener('submit', async (e) => {
@@ -70,11 +88,9 @@ document.getElementById('form-producto').addEventListener('submit', async (e) =>
     btn.disabled = true;
 
     try {
-        let urlsImagenes = [];
-
-        // Si seleccionó fotos nuevas, las subimos a ImgBB
+        // Si el usuario seleccionó fotos nuevas, las subimos a ImgBB
         if (archivos.length > 0) {
-            btn.innerText = "Subiendo fotos (esto puede tardar)...";
+            btn.innerText = `Subiendo ${archivos.length} foto(s)...`;
             
             for (let i = 0; i < archivos.length; i++) {
                 const file = archivos[i];
@@ -89,19 +105,13 @@ document.getElementById('form-producto').addEventListener('submit', async (e) =>
                 const datos = await respuesta.json();
                 
                 if (datos.success) {
-                    urlsImagenes.push(datos.data.url); 
-                } else {
-                    console.error("Error subiendo foto:", datos);
+                    fotosActuales.push(datos.data.url); // SUMAMOS las nuevas a las que ya había
                 }
             }
         }
 
-        // Si estamos editando y no subió fotos nuevas, conservamos las que ya tenía
-        let imagenesFinales = urlsImagenes;
-        if (id && urlsImagenes.length === 0) {
-            const prodExistente = window.productosAdminGlobal.find(p => p.id === id);
-            imagenesFinales = prodExistente ? prodExistente.imagenes : [];
-        }
+        // Limpiamos la lista de fotos para quitar errores de Firebase (vacíos)
+        const fotosLimpis = fotosActuales.filter(url => url && url.trim() !== "");
 
         const datosProducto = {
             nombre,
@@ -109,7 +119,7 @@ document.getElementById('form-producto').addEventListener('submit', async (e) =>
             categoria,
             precio,
             descripcion,
-            imagenes: imagenesFinales,
+            imagenes: fotosLimpis,
             masVendido,
             moneda
         };
@@ -121,8 +131,7 @@ document.getElementById('form-producto').addEventListener('submit', async (e) =>
         btn.innerText = "Guardando en base de datos...";
 
         if (id) {
-            const productoRef = doc(db, "productos", id);
-            await updateDoc(productoRef, datosProducto);
+            await updateDoc(doc(db, "productos", id), datosProducto);
             alert("¡Producto actualizado exitosamente!");
         } else {
             await addDoc(collection(db, "productos"), datosProducto);
@@ -134,10 +143,11 @@ document.getElementById('form-producto').addEventListener('submit', async (e) =>
         
     } catch (error) {
         console.error("Error al guardar:", error);
-        alert("Error al guardar. Revisa tu conexión a internet.");
+        alert("Error al guardar. Revisa tu conexión.");
     } finally {
         btn.innerText = "Guardar Producto en Firebase";
         btn.disabled = false;
+        document.getElementById('prod-fotos').value = "";
     }
 });
 
@@ -197,8 +207,9 @@ window.prepararEdicion = function(id) {
         document.getElementById('prod-mas-vendido').checked = producto.masVendido || false;
         document.getElementById('prod-moneda').value = producto.moneda || "USD";
         
-        // Limpiamos el input de fotos al editar
-        document.getElementById('prod-fotos').value = "";
+        // Cargamos las fotos que ya tenía el producto en la variable global
+        fotosActuales = producto.imagenes ? [...producto.imagenes] : [];
+        actualizarVistaPreviaFotos(); // Las mostramos en pantalla
 
         document.getElementById('titulo-formulario').innerText = "Editando Producto";
         document.getElementById('btn-guardar').innerText = "Actualizar Producto";
@@ -212,6 +223,9 @@ window.prepararEdicion = function(id) {
 window.cancelarEdicion = function() {
     document.getElementById('form-producto').reset();
     document.getElementById('prod-id').value = "";
+    fotosActuales = []; // Limpiamos las fotos
+    actualizarVistaPreviaFotos(); // Limpiamos la vista previa
+    
     document.getElementById('titulo-formulario').innerText = "Agregar Nuevo Producto";
     document.getElementById('btn-guardar').innerText = "Guardar Producto en Firebase";
     document.getElementById('btn-cancelar').style.display = 'none';
@@ -225,15 +239,11 @@ window.eliminarProducto = async function(id) {
             alert("Producto eliminado");
             cargarProductosAdmin(); 
         } catch (error) {
-            console.error("Error al eliminar:", error);
             alert("No se pudo eliminar el producto.");
         }
     }
 };
 
-// --- CERRAR SESIÓN ---
 window.cerrarSesionAdmin = function() {
-    signOut(auth).then(() => {
-        alert("Sesión cerrada");
-    });
+    signOut(auth).then(() => alert("Sesión cerrada"));
 };
